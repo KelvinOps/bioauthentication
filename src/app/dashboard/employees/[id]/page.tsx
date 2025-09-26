@@ -1,5 +1,3 @@
-//dashboard/employees/[id]/page.tsx
-// 
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -14,7 +12,6 @@ import {
   Calendar, 
   Building, 
   User, 
-  Fingerprint,
   Activity,
   Clock,
   TrendingUp
@@ -91,7 +88,7 @@ export default function EmployeeDetailPage() {
   const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
-    const employeeId = params.id as string
+    // Removed unused employeeId variable - directly use params.id where needed
     
     // Simulate API call to fetch employee data
     const timer = setTimeout(() => {
@@ -130,7 +127,7 @@ export default function EmployeeDetailPage() {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold text-white mb-2">Employee Not Found</h2>
-        <p className="text-slate-400 mb-6">The employee you're looking for doesn't exist.</p>
+        <p className="text-slate-400 mb-6">The employee you&apos;re looking for doesn&apos;t exist.</p>
         <button
           onClick={() => router.back()}
           className="btn-primary"

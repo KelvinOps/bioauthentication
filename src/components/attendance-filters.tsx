@@ -32,7 +32,7 @@ interface AttendanceFilters {
   department: string;
 }
 
-export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFiltersProps) {
+export function AttendanceFilters({ onFiltersChange, isLoading = false }: AttendanceFiltersProps) {
   const [filters, setFilters] = useState<AttendanceFilters>({
     search: "",
     dateFrom: null,
@@ -48,7 +48,7 @@ export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFilt
   };
 
   const clearFilters = () => {
-    const cleared = {
+    const cleared: AttendanceFilters = {
       search: "",
       dateFrom: null,
       dateTo: null,
@@ -69,12 +69,19 @@ export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFilt
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
               <span className="font-medium">Filters</span>
+              {isLoading && (
+                <div className="ml-2 flex items-center text-sm text-muted-foreground">
+                  <div className="animate-spin rounded-full h-3 w-3 border-2 border-gray-300 border-t-blue-600 mr-1"></div>
+                  Loading...
+                </div>
+              )}
             </div>
             {hasActiveFilters && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
+                disabled={isLoading}
                 data-testid="button-clear-filters"
               >
                 <X className="h-4 w-4 mr-1" />
@@ -95,6 +102,7 @@ export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFilt
                   value={filters.search}
                   onChange={(e) => updateFilters({ search: e.target.value })}
                   className="pl-8"
+                  disabled={isLoading}
                   data-testid="input-search-employee"
                 />
               </div>
@@ -108,6 +116,7 @@ export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFilt
                   <Button
                     variant="outline"
                     className="justify-start text-left font-normal"
+                    disabled={isLoading}
                     data-testid="button-date-from"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -118,7 +127,7 @@ export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFilt
                   <Calendar
                     mode="single"
                     selected={filters.dateFrom || undefined}
-                    onSelect={(date) => updateFilters({ dateFrom: date || null })}
+                    onSelect={(selectedDate) => updateFilters({ dateFrom: selectedDate || null })}
                     initialFocus
                   />
                 </PopoverContent>
@@ -133,6 +142,7 @@ export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFilt
                   <Button
                     variant="outline"
                     className="justify-start text-left font-normal"
+                    disabled={isLoading}
                     data-testid="button-date-to"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -143,7 +153,7 @@ export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFilt
                   <Calendar
                     mode="single"
                     selected={filters.dateTo || undefined}
-                    onSelect={(date) => updateFilters({ dateTo: date || null })}
+                    onSelect={(selectedDate) => updateFilters({ dateTo: selectedDate || null })}
                     initialFocus
                   />
                 </PopoverContent>
@@ -155,7 +165,8 @@ export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFilt
               <Label htmlFor="status">Status</Label>
               <Select
                 value={filters.status}
-                onValueChange={(value) => updateFilters({ status: value })}
+                onValueChange={(value: string) => updateFilters({ status: value })}
+                disabled={isLoading}
               >
                 <SelectTrigger data-testid="select-status">
                   <SelectValue placeholder="All statuses" />
@@ -175,7 +186,8 @@ export function AttendanceFilters({ onFiltersChange, isLoading }: AttendanceFilt
               <Label htmlFor="department">Department</Label>
               <Select
                 value={filters.department}
-                onValueChange={(value) => updateFilters({ department: value })}
+                onValueChange={(value: string) => updateFilters({ department: value })}
+                disabled={isLoading}
               >
                 <SelectTrigger data-testid="select-department">
                   <SelectValue placeholder="All departments" />

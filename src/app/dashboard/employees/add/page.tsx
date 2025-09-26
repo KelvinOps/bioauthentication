@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, User, Mail, Building, Calendar, Save, Fingerprint } from 'lucide-react'
+import { ArrowLeft, User, Building, Save, Fingerprint } from 'lucide-react'
 
 interface EmployeeForm {
   firstName: string
@@ -19,7 +19,6 @@ interface EmployeeForm {
   status: 'Active' | 'Inactive'
 }
 
-const departments = ['Engineering', 'Marketing', 'HR', 'Finance', 'Operations', 'Sales']
 const positions = {
   Engineering: ['Software Developer', 'Senior Developer', 'DevOps Engineer', 'QA Engineer', 'Tech Lead'],
   Marketing: ['Marketing Manager', 'Content Creator', 'Social Media Manager', 'SEO Specialist'],
@@ -305,6 +304,29 @@ export default function AddEmployeePage() {
                       errors.department ? 'border-red-500' : 'border-slate-700'
                     }`}
                   >
+                    <option value="">Select Department</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="HR">HR</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Sales">Sales</option>
+                  </select>
+                  {errors.department && <p className="mt-1 text-sm text-red-400">{errors.department}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Position *
+                  </label>
+                  <select
+                    value={formData.position}
+                    onChange={(e) => handleInputChange('position', e.target.value)}
+                    className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.position ? 'border-red-500' : 'border-slate-700'
+                    }`}
+                    disabled={!formData.department}
+                  >
                     <option value="">Select Position</option>
                     {formData.department && positions[formData.department as keyof typeof positions]?.map(pos => (
                       <option key={pos} value={pos}>{pos}</option>
@@ -395,7 +417,7 @@ export default function AddEmployeePage() {
                     <div>
                       <h3 className="text-lg font-medium text-white mb-2">Enroll Fingerprint</h3>
                       <p className="text-slate-400 mb-6">
-                        Place the employee's finger on the biometric scanner to enroll their fingerprint.
+                        Place the employee&apos;s finger on the biometric scanner to enroll their fingerprint.
                       </p>
                       <button
                         type="button"
@@ -425,7 +447,7 @@ export default function AddEmployeePage() {
                     <div>
                       <h3 className="text-lg font-medium text-white mb-2">Fingerprint Enrolled Successfully</h3>
                       <p className="text-slate-400">
-                        The employee's fingerprint has been successfully enrolled and is ready for attendance tracking.
+                        The employee&apos;s fingerprint has been successfully enrolled and is ready for attendance tracking.
                       </p>
                     </div>
                   </div>

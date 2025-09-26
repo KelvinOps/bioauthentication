@@ -12,9 +12,7 @@ import {
   Wifi,
   X,
   BarChart3,
-  Download,
-  Calendar,
-  User
+  Download
 } from 'lucide-react'
 
 interface SidebarProps {

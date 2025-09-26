@@ -170,7 +170,7 @@ export default function EmployeesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Employees</h1>
-          <p className="text-slate-400 mt-1">Manage your organization's employee records</p>
+          <p className="text-slate-400 mt-1">Manage your organization employee records</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="btn-secondary flex items-center gap-2">

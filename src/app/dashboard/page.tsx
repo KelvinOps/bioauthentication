@@ -10,11 +10,51 @@ import {
   RefreshCw,
   ChevronRight,
   UserCheck,
-  UserX
+  UserX,
+  LucideIcon
 } from 'lucide-react'
 
+// Type definitions
+interface Stats {
+  totalEmployees: number
+  presentToday: number
+  lateArrivals: number
+  avgDailyHours: number
+  employeeChange: string
+  attendanceRate: string
+  lateChange: string
+  hoursChange: string
+}
+
+interface DeviceStatus {
+  name: string
+  status: string
+  ipAddress: string
+  lastSync: string
+  totalEmployees: number
+  lastActivity: string
+}
+
+interface RealtimeActivity {
+  id: number
+  name: string
+  empId: string
+  action: string
+  time: string
+  initials: string
+  type: 'in' | 'out'
+}
+
+interface StatCardProps {
+  title: string
+  value: string | number
+  change: string
+  changeType?: 'positive' | 'negative' | 'neutral'
+  icon: LucideIcon
+}
+
 // Mock data - replace with real API calls
-const mockStats = {
+const mockStats: Stats = {
   totalEmployees: 125,
   presentToday: 118,
   lateArrivals: 7,
@@ -25,7 +65,7 @@ const mockStats = {
   hoursChange: '+0.3h this month'
 }
 
-const mockDeviceStatus = {
+const mockDeviceStatus: DeviceStatus = {
   name: 'ZKTECO K40 Pro',
   status: 'Online',
   ipAddress: '192.168.10.201:4370',
@@ -34,7 +74,7 @@ const mockDeviceStatus = {
   lastActivity: 'John Doe - Check In'
 }
 
-const mockRealtimeActivity = [
+const mockRealtimeActivity: RealtimeActivity[] = [
   { id: 1, name: 'Emma Brown', empId: 'EMP006', action: 'Check Out', time: '03:28:45', initials: 'EB', type: 'out' },
   { id: 2, name: 'David Wilson', empId: 'EMP005', action: 'Check Out', time: '03:28:39', initials: 'DW', type: 'out' },
   { id: 3, name: 'Chris Taylor', empId: 'EMP007', action: 'Check Out', time: '03:28:17', initials: 'CT', type: 'out' },
@@ -42,7 +82,17 @@ const mockRealtimeActivity = [
   { id: 5, name: 'Chris Taylor', empId: 'EMP007', action: 'Check In', time: '03:26:17', initials: 'CT', type: 'in' },
 ]
 
-const mockTodayAttendance = [
+interface AttendanceRecord {
+  name: string
+  empId: string
+  checkIn: string
+  checkOut: string
+  hours: string
+  status: string
+  initials: string
+}
+
+const mockTodayAttendance: AttendanceRecord[] = [
   { name: 'John Doe', empId: 'EMP001', checkIn: '09:15 AM', checkOut: '06:00 PM', hours: '8.5h', status: 'Present', initials: 'JD' },
   { name: 'Sarah Smith', empId: 'EMP002', checkIn: '09:45 AM', checkOut: '06:15 PM', hours: '8.2h', status: 'Late', initials: 'SS' },
   { name: 'Mike Johnson', empId: 'EMP003', checkIn: '-', checkOut: '-', hours: '-', status: 'Absent', initials: 'MJ' },
@@ -52,9 +102,11 @@ const mockTodayAttendance = [
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
-  const [stats, setStats] = useState(mockStats)
-  const [deviceStatus, setDeviceStatus] = useState(mockDeviceStatus)
-  const [realtimeActivity, setRealtimeActivity] = useState(mockRealtimeActivity)
+  
+  // Removed unused state setters and added proper typing
+  const stats = mockStats
+  const deviceStatus = mockDeviceStatus
+  const realtimeActivity = mockRealtimeActivity
 
   useEffect(() => {
     // Simulate loading
@@ -68,13 +120,7 @@ export default function DashboardPage() {
     change, 
     changeType = 'positive',
     icon: Icon 
-  }: {
-    title: string
-    value: string | number
-    change: string
-    changeType?: 'positive' | 'negative' | 'neutral'
-    icon: any
-  }) => (
+  }: StatCardProps) => (
     <div className="stats-card">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -120,7 +166,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-slate-400 mt-1">Overview of today's attendance and device status</p>
+          <p className="text-slate-400 mt-1">Overview of today&apos;s attendance and device status</p>
         </div>
         <button className="btn-primary flex items-center gap-2">
           <RefreshCw className="w-4 h-4" />
@@ -235,7 +281,7 @@ export default function DashboardPage() {
       <div className="card">
         <div className="card-header">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Today's Attendance</h2>
+            <h2 className="text-lg font-semibold text-white">Today&apos;s Attendance</h2>
             <button className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
               View All
               <ChevronRight className="w-4 h-4" />

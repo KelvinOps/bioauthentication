@@ -3,6 +3,20 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Define types for student and attendance
+export interface Student {
+  id: string;
+  name: string;
+  // Add more fields as needed
+}
+
+export interface Attendance {
+  id: string;
+  timestamp: string;
+  status: string;
+  // Add more fields as needed
+}
+
 export interface FingerprintEnrollmentResult {
   success: boolean;
   message?: string;
@@ -13,9 +27,13 @@ export interface FingerprintEnrollmentResult {
 export interface FingerprintVerificationResult {
   success: boolean;
   message?: string;
-  student?: any;
-  attendance?: any;
+  student?: Student;
+  attendance?: Attendance;
   status?: string;
+}
+
+interface ApiError {
+  message?: string;
 }
 
 export function useFingerprintEnroll() {
@@ -28,7 +46,6 @@ export function useFingerprintEnroll() {
       setIsEnrolling(true);
       setProgress(0);
 
-      // Simulate progress updates
       const progressInterval = setInterval(() => {
         setProgress(prev => {
           if (prev >= 100) {
@@ -43,14 +60,14 @@ export function useFingerprintEnroll() {
         const response = await apiRequest("POST", "/api/fingerprint/enroll", studentData);
         clearInterval(progressInterval);
         setProgress(100);
-        return await response.json();
+        return await response.json() as FingerprintEnrollmentResult;
       } catch (error) {
         clearInterval(progressInterval);
         setProgress(0);
         throw error;
       }
     },
-    onSuccess: (result: FingerprintEnrollmentResult) => {
+    onSuccess: (result) => {
       setIsEnrolling(false);
       if (result.success) {
         toast({
@@ -66,12 +83,13 @@ export function useFingerprintEnroll() {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as ApiError;
       setIsEnrolling(false);
       setProgress(0);
       toast({
         title: "Enrollment Error",
-        description: error.message || "An error occurred during fingerprint enrollment",
+        description: err.message || "An error occurred during fingerprint enrollment",
         variant: "destructive",
       });
     },
@@ -102,22 +120,17 @@ export function useFingerprintVerify() {
   const verifyMutation = useMutation({
     mutationFn: async () => {
       setIsVerifying(true);
-      
-      // Simulate verification delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
       const response = await apiRequest("POST", "/api/fingerprint/verify");
-      return await response.json();
+      return await response.json() as FingerprintVerificationResult;
     },
-    onSuccess: (result: FingerprintVerificationResult) => {
+    onSuccess: (result) => {
       setIsVerifying(false);
       if (result.success) {
         toast({
           title: "Attendance Recorded",
           description: `${result.student?.name} marked as ${result.status}`,
         });
-        
-        // Invalidate relevant queries
         queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       } else {
@@ -128,11 +141,12 @@ export function useFingerprintVerify() {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as ApiError;
       setIsVerifying(false);
       toast({
         title: "Scanner Error",
-        description: error.message || "Failed to verify fingerprint. Please try again.",
+        description: err.message || "Failed to verify fingerprint. Please try again.",
         variant: "destructive",
       });
     },
@@ -156,7 +170,7 @@ export function useFingerprintTest() {
   const testMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/fingerprint/test");
-      return await response.json();
+      return await response.json() as FingerprintEnrollmentResult;
     },
     onSuccess: (result) => {
       if (result.success) {
@@ -172,10 +186,11 @@ export function useFingerprintTest() {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as ApiError;
       toast({
         title: "Connection Error",
-        description: error.message || "Failed to test scanner connection",
+        description: err.message || "Failed to test scanner connection",
         variant: "destructive",
       });
     },

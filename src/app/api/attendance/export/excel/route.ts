@@ -4,19 +4,53 @@ import ExcelJS from 'exceljs'
 
 const prisma = new PrismaClient()
 
+interface AttendanceRecord {
+  id: string
+  employeeId: string
+  timestamp: Date
+  type: string
+  method: string
+  deviceId?: string | null
+  employee: {
+    id: string
+    userId: string
+    name: string
+    department?: string | null
+    position?: string | null
+    cardNumber?: string | null
+  }
+}
+
+interface RequestBody {
+  startDate?: string
+  endDate?: string
+  employeeIds?: string[]
+  includeDetails?: boolean
+  format?: 'detailed' | 'summary' | 'timesheet'
+}
+
+interface AttendanceWhere {
+  timestamp?: {
+    gte: Date
+    lte: Date
+  }
+  employeeId?: {
+    in: string[]
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body: RequestBody = await request.json()
     const { 
       startDate, 
       endDate, 
-      employeeIds, 
-      includeDetails = true,
+      employeeIds,
       format = 'detailed' // 'detailed' | 'summary' | 'timesheet'
     } = body
 
     // Build query filters
-    const where: any = {}
+    const where: AttendanceWhere = {}
     
     if (startDate && endDate) {
       where.timestamp = {
@@ -50,7 +84,7 @@ export async function POST(request: NextRequest) {
         { employee: { name: 'asc' } },
         { timestamp: 'asc' }
       ]
-    })
+    }) as AttendanceRecord[]
 
     // Create workbook
     const workbook = new ExcelJS.Workbook()
@@ -99,7 +133,7 @@ export async function POST(request: NextRequest) {
 
 async function createDetailedSheet(
   workbook: ExcelJS.Workbook, 
-  records: any[], 
+  records: AttendanceRecord[], 
   startDate?: string, 
   endDate?: string
 ) {
@@ -149,7 +183,9 @@ async function createDetailedSheet(
 
   // Auto-fit columns
   worksheet.columns.forEach(column => {
-    column.width = Math.max(12, Math.min(50, column.header?.length || 12))
+    if (column.header) {
+      column.width = Math.max(12, Math.min(50, column.header.length || 12))
+    }
   })
 
   // Add title and summary
@@ -169,16 +205,25 @@ async function createDetailedSheet(
   worksheet.mergeCells(1, 1, 1, headers.length)
 }
 
+interface SummaryEntry {
+  employee: AttendanceRecord['employee']
+  date: string
+  checkIn: string | null
+  checkOut: string | null
+  totalHours: number
+  status: string
+}
+
 async function createSummarySheet(
   workbook: ExcelJS.Workbook, 
-  records: any[], 
-  startDate?: string, 
-  endDate?: string
+  records: AttendanceRecord[], 
+  _startDate?: string, 
+  _endDate?: string
 ) {
   const worksheet = workbook.addWorksheet('Attendance Summary')
 
   // Group records by employee and date
-  const summary = new Map()
+  const summary = new Map<string, SummaryEntry>()
   
   records.forEach(record => {
     const key = `${record.employee.userId}-${record.timestamp.toDateString()}`
@@ -193,7 +238,7 @@ async function createSummarySheet(
       })
     }
 
-    const entry = summary.get(key)
+    const entry = summary.get(key)!
     if (record.type === 'CHECK_IN' && !entry.checkIn) {
       entry.checkIn = record.timestamp.toLocaleTimeString()
     } else if (record.type === 'CHECK_OUT' && !entry.checkOut) {
@@ -249,20 +294,29 @@ async function createSummarySheet(
 
   // Auto-fit columns
   worksheet.columns.forEach(column => {
-    column.width = Math.max(12, Math.min(50, column.header?.length || 12))
+    if (column.header) {
+      column.width = Math.max(12, Math.min(50, column.header.length || 12))
+    }
   })
+}
+
+interface DailyRecord {
+  date: string
+  checkIn: string | null
+  checkOut: string | null
+  records: AttendanceRecord[]
 }
 
 async function createTimesheetSheet(
   workbook: ExcelJS.Workbook, 
-  records: any[], 
-  startDate?: string, 
-  endDate?: string
+  records: AttendanceRecord[], 
+  _startDate?: string, 
+  _endDate?: string
 ) {
   const worksheet = workbook.addWorksheet('Timesheet')
 
   // Group by employee
-  const employeeRecords = new Map()
+  const employeeRecords = new Map<string, { employee: AttendanceRecord['employee'], records: AttendanceRecord[] }>()
   records.forEach(record => {
     if (!employeeRecords.has(record.employee.userId)) {
       employeeRecords.set(record.employee.userId, {
@@ -270,7 +324,7 @@ async function createTimesheetSheet(
         records: []
       })
     }
-    employeeRecords.get(record.employee.userId).records.push(record)
+    employeeRecords.get(record.employee.userId)!.records.push(record)
   })
 
   let currentRow = 1
@@ -295,18 +349,19 @@ async function createTimesheetSheet(
     currentRow++
 
     // Employee records
-    const dailyRecords = new Map()
+    const dailyRecords = new Map<string, DailyRecord>()
     empRecords.forEach(record => {
       const dateKey = record.timestamp.toDateString()
       if (!dailyRecords.has(dateKey)) {
         dailyRecords.set(dateKey, { date: dateKey, checkIn: null, checkOut: null, records: [] })
       }
-      dailyRecords.get(dateKey).records.push(record)
+      const dayRecord = dailyRecords.get(dateKey)!
+      dayRecord.records.push(record)
       
       if (record.type === 'CHECK_IN') {
-        dailyRecords.get(dateKey).checkIn = record.timestamp.toLocaleTimeString()
+        dayRecord.checkIn = record.timestamp.toLocaleTimeString()
       } else if (record.type === 'CHECK_OUT') {
-        dailyRecords.get(dateKey).checkOut = record.timestamp.toLocaleTimeString()
+        dayRecord.checkOut = record.timestamp.toLocaleTimeString()
       }
     })
 
@@ -336,7 +391,9 @@ async function createTimesheetSheet(
 
   // Auto-fit columns
   worksheet.columns.forEach(column => {
-    column.width = Math.max(15, Math.min(50, column.header?.length || 15))
+    if (column.header) {
+      column.width = Math.max(15, Math.min(50, column.header.length || 15))
+    }
   })
 }
 

@@ -15,9 +15,22 @@ const mockAttendanceData = [
   { id: 8, name: 'Amanda Davis', empId: 'EMP008', date: '2024-01-15', checkIn: '08:45 AM', checkOut: '05:50 PM', hours: '9.0h', status: 'Present', initials: 'AD' },
 ]
 
+interface AttendanceRecord {
+  id: number
+  name: string
+  empId: string
+  date: string
+  checkIn: string
+  checkOut: string
+  hours: string
+  status: string
+  initials: string
+}
+
 export default function AttendancePage() {
-  const [attendanceData, setAttendanceData] = useState(mockAttendanceData)
-  const [filteredData, setFilteredData] = useState(mockAttendanceData)
+  // Removed setAttendanceData since it was never used
+  const [attendanceData] = useState<AttendanceRecord[]>(mockAttendanceData)
+  const [filteredData, setFilteredData] = useState<AttendanceRecord[]>(mockAttendanceData)
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')

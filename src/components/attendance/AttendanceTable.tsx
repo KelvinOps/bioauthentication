@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Table } from '@/components/ui/Table';
-import { Badge } from '@/components/ui/Badge';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/components/ui/loadingspinner';
+import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 
 interface AttendanceRecord {
@@ -37,11 +36,7 @@ export default function AttendanceTable({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAttendance();
-  }, [dateFilter, employeeFilter, limit]);
-
-  const fetchAttendance = async () => {
+  const fetchAttendance = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -60,40 +55,45 @@ export default function AttendanceTable({
       const data = await response.json();
       setAttendance(data.attendance || []);
     } catch (error) {
-      setError(error.message);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      setError(errorMessage);
       console.error('Error fetching attendance:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFilter, employeeFilter, limit]);
+
+  useEffect(() => {
+    fetchAttendance();
+  }, [fetchAttendance]);
 
   const getStatusBadgeColor = (status: string, type: string) => {
     switch (status.toLowerCase()) {
       case 'late':
-        return 'warning';
+        return 'destructive';
       case 'absent':
-        return 'error';
+        return 'destructive';
       case 'normal':
-        return type.includes('OUT') ? 'info' : 'success';
+        return type.includes('OUT') ? 'secondary' : 'default';
       default:
-        return 'default';
+        return 'outline';
     }
   };
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
       case 'CHECK_IN':
-        return 'success';
+        return 'default';
       case 'CHECK_OUT':
-        return 'info';
+        return 'secondary';
       case 'BREAK_OUT':
       case 'BREAK_IN':
-        return 'warning';
+        return 'outline';
       case 'OVERTIME_IN':
       case 'OVERTIME_OUT':
         return 'secondary';
       default:
-        return 'default';
+        return 'outline';
     }
   };
 
@@ -176,7 +176,7 @@ export default function AttendanceTable({
       key: 'verified',
       header: 'Verified',
       render: (record: AttendanceRecord) => (
-        <Badge variant={record.verified === 1 ? 'success' : 'error'}>
+        <Badge variant={record.verified === 1 ? 'default' : 'destructive'}>
           {record.verified === 1 ? 'Yes' : 'No'}
         </Badge>
       )
@@ -202,12 +202,38 @@ export default function AttendanceTable({
         </Button>
       </div>
       
-      <Table
-        data={attendance}
-        columns={columns}
-        emptyMessage="No attendance records found"
-        className="bg-white"
-      />
+      <div className="overflow-x-auto">
+        <table className="w-full bg-white border border-gray-200 rounded-lg">
+          <thead className="bg-gray-50">
+            <tr>
+              {columns.map((column) => (
+                <th key={column.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                  {column.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {attendance.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length} className="px-6 py-8 text-center text-gray-500">
+                  No attendance records found
+                </td>
+              </tr>
+            ) : (
+              attendance.map((record) => (
+                <tr key={record.id} className="hover:bg-gray-50">
+                  {columns.map((column) => (
+                    <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                      {column.render(record)}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
