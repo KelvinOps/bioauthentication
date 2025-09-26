@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id          String   @id @default(cuid())
+  userId      String   @unique // ZKTECO device user ID
+  name        String
+  email       String?
+  department  String?
+  position    String?
+  cardNumber  String?
+  fingerprint String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  attendance Attendance[]
+
+  @@map("employees")
+}
+
+model Attendance {
+  id         String      @id @default(cuid())
+  employeeId String
+  userId     String      // ZKTECO device user ID
+  timestamp  DateTime
+  type       AttendanceType
+  method     AttendanceMethod
+  deviceId   String?
+  source     String      @default("ZKTECO") // Source device/system
+  synced     Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, timestamp])
+  @@index([timestamp])
+  @@index([synced])
+  @@map("attendance")
+}
+
+model Device {
+  id          String   @id @default(cuid())
+  name        String
+  ipAddress   String   @unique
+  port        Int
+  deviceId    String
+  model       String   @default("ZKTECO K40 Pro")
+  location    String?
+  isActive    Boolean  @default(true)
+  lastSync    DateTime?
+  lastPing    DateTime?
+  status      DeviceStatus @default(OFFLINE)
+  firmware    String?
+  totalUsers  Int?
+  totalLogs   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("devices")
+}
+
+model SyncLog {
+  id           String    @id @default(cuid())
+  deviceId     String
+  syncType     SyncType
+  status       SyncStatus
+  recordCount  Int       @default(0)
+  errorMessage String?
+  startTime    DateTime
+  endTime      DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([deviceId, syncType])
+  @@index([startTime])
+  @@map("sync_logs")
+}
+
+model SystemSettings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  type  String @default("string")
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+enum AttendanceType {
+  CHECK_IN
+  CHECK_OUT
+  BREAK_IN
+  BREAK_OUT
+  OVERTIME_IN
+  OVERTIME_OUT
+}
+
+enum AttendanceMethod {
+  FINGERPRINT
+  CARD
+  PASSWORD
+  FACE
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  ERROR
+  SYNCING
+}
+
+enum SyncType {
+  EMPLOYEES
+  ATTENDANCE
+  FULL
+  AUTO
+}
+
+enum SyncStatus {
+  SUCCESS
+  FAILED
+  IN_PROGRESS
+  PARTIAL
+}
