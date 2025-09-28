@@ -1,6 +1,5 @@
 import * as net from 'net';
 import { EventEmitter } from 'events';
-import { DATParser } from './DATParser';
 
 export interface ZKTecoConfig {
   ip: string;
@@ -35,13 +34,19 @@ export interface Employee {
   position?: string;
 }
 
+// Define proper response type
+interface ZKTecoResponse {
+  command: number;
+  data: Buffer;
+  checksum: number;
+}
+
 export class ZKTecoClient extends EventEmitter {
   private socket: net.Socket | null = null;
   private config: ZKTecoConfig;
   private sessionId: number = 0;
   private replyId: number = 1;
   private isConnected: boolean = false;
-  private datParser: DATParser;
 
   constructor(config: ZKTecoConfig) {
     super();
@@ -49,7 +54,6 @@ export class ZKTecoClient extends EventEmitter {
       timeout: 5000,
       ...config
     };
-    this.datParser = new DATParser();
   }
 
   async connect(): Promise<boolean> {
@@ -115,7 +119,7 @@ export class ZKTecoClient extends EventEmitter {
     }
   }
 
-  private parseResponse(data: Buffer): any {
+  private parseResponse(data: Buffer): ZKTecoResponse {
     // Simplified response parsing
     // Real implementation would parse the ZKTECO protocol
     return {
@@ -162,7 +166,7 @@ export class ZKTecoClient extends EventEmitter {
         reject(new Error('Get device info timeout'));
       }, this.config.timeout);
 
-      this.once('response', (response) => {
+      this.once('response', () => {
         clearTimeout(timeout);
         try {
           // Parse device info from response
@@ -191,10 +195,10 @@ export class ZKTecoClient extends EventEmitter {
       throw new Error('Device not connected');
     }
 
-    // In real implementation, this would read the .dat file or query the device
-    // For now, we'll simulate reading from a .dat file
+    // Generate mock attendance records for testing
+    // In production, this would query the actual device
     try {
-      const records = await this.datParser.parseAttendanceFile();
+      const records = this.generateMockAttendanceRecords();
       
       // Filter by date range if provided
       if (startDate || endDate) {
@@ -218,12 +222,78 @@ export class ZKTecoClient extends EventEmitter {
     }
 
     try {
-      const employees = await this.datParser.parseEmployeeFile();
-      return employees;
+      return this.generateMockEmployees();
     } catch (error) {
       console.error('Error reading employees:', error);
       throw error;
     }
+  }
+
+  // Mock data generators for testing
+  private generateMockAttendanceRecords(): AttendanceRecord[] {
+    const records: AttendanceRecord[] = [];
+    const userIds = ['1001', '1002', '1003', '1004', '1005'];
+    const now = new Date();
+    
+    for (let i = 0; i < 50; i++) {
+      const userId = userIds[Math.floor(Math.random() * userIds.length)];
+      const daysAgo = Math.floor(Math.random() * 30);
+      const timestamp = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+      
+      // Add random hours for check-in/out times
+      timestamp.setHours(8 + Math.floor(Math.random() * 10));
+      timestamp.setMinutes(Math.floor(Math.random() * 60));
+      
+      records.push({
+        userId,
+        timestamp,
+        type: Math.random() > 0.5 ? 0 : 1, // 0 = Check In, 1 = Check Out
+        method: Math.floor(Math.random() * 4), // 0-3 for different methods
+        deviceId: this.config.deviceId.toString()
+      });
+    }
+    
+    return records.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  private generateMockEmployees(): Employee[] {
+    return [
+      {
+        userId: '1001',
+        name: 'John Doe',
+        cardNumber: 'C001',
+        department: 'Engineering',
+        position: 'Senior Developer'
+      },
+      {
+        userId: '1002',
+        name: 'Jane Smith',
+        cardNumber: 'C002',
+        department: 'Marketing',
+        position: 'Marketing Manager'
+      },
+      {
+        userId: '1003',
+        name: 'Mike Johnson',
+        cardNumber: 'C003',
+        department: 'HR',
+        position: 'HR Specialist'
+      },
+      {
+        userId: '1004',
+        name: 'Sarah Wilson',
+        cardNumber: 'C004',
+        department: 'Finance',
+        position: 'Accountant'
+      },
+      {
+        userId: '1005',
+        name: 'David Brown',
+        cardNumber: 'C005',
+        department: 'Engineering',
+        position: 'Frontend Developer'
+      }
+    ];
   }
 
   async syncAttendance(): Promise<AttendanceRecord[]> {

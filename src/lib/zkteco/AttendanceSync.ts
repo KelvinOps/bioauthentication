@@ -7,6 +7,13 @@ export interface SyncResult {
   errors: string[]
 }
 
+// Define proper error type
+interface SyncError {
+  message: string;
+  code?: string;
+  details?: unknown;
+}
+
 export class AttendanceSync {
   constructor(
     private zkClient: ZKTecoClient,
@@ -26,15 +33,17 @@ export class AttendanceSync {
       for (const record of deviceRecords) {
         try {
           await this.processAttendanceRecord(record, newRecords, updatedRecords)
-        } catch (error: any) {
-          errors.push(`Error processing record for user ${record.userId}: ${error.message}`)
+        } catch (error: unknown) {
+          const syncError = error as SyncError
+          errors.push(`Error processing record for user ${record.userId}: ${syncError.message}`)
         }
       }
 
       console.log(`Sync completed: ${newRecords.length} new, ${updatedRecords.length} updated, ${errors.length} errors`)
 
-    } catch (error: any) {
-      errors.push(`Device sync error: ${error.message}`)
+    } catch (error: unknown) {
+      const syncError = error as SyncError
+      errors.push(`Device sync error: ${syncError.message}`)
     }
 
     return { newRecords, updatedRecords, errors }
@@ -91,7 +100,7 @@ export class AttendanceSync {
     if (existingRecord) {
       // Update existing record if needed
       if (!existingRecord.synced) {
-        const updated = await this.prisma.attendance.update({
+        await this.prisma.attendance.update({
           where: { id: existingRecord.id },
           data: {
             method: this.mapAttendanceMethod(record.method),
@@ -185,13 +194,15 @@ export class AttendanceSync {
             })
             newEmployees++
           }
-        } catch (error: any) {
-          errors.push(`Error syncing employee ${deviceEmployee.userId}: ${error.message}`)
+        } catch (error: unknown) {
+          const syncError = error as SyncError
+          errors.push(`Error syncing employee ${deviceEmployee.userId}: ${syncError.message}`)
         }
       }
 
-    } catch (error: any) {
-      errors.push(`Employee sync error: ${error.message}`)
+    } catch (error: unknown) {
+      const syncError = error as SyncError
+      errors.push(`Employee sync error: ${syncError.message}`)
     }
 
     return { newEmployees, updatedEmployees, errors }

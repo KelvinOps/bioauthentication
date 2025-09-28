@@ -7,8 +7,6 @@ import {
   Calendar, 
   Filter, 
   Settings, 
-  Users,
-  Clock,
   CheckCircle,
   AlertCircle,
   BarChart3
@@ -216,7 +214,11 @@ export default function ExportPage() {
                       }`}
                     >
                       <div className="flex items-center gap-3 mb-2">
-                        <IconComponent className={`w-5 h-5 text-${format.color}-400`} />
+                        <IconComponent className={`w-5 h-5 ${
+                          format.color === 'green' ? 'text-green-400' :
+                          format.color === 'red' ? 'text-red-400' :
+                          'text-blue-400'
+                        }`} />
                         <h3 className="text-white font-medium">{format.name}</h3>
                       </div>
                       <p className="text-slate-400 text-sm">{format.description}</p>

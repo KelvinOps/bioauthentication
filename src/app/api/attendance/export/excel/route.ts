@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       startDate, 
       endDate, 
       employeeIds,
-      format = 'detailed' // 'detailed' | 'summary' | 'timesheet'
+      format = 'detailed'
     } = body
 
     // Build query filters
@@ -188,7 +188,7 @@ async function createDetailedSheet(
     }
   })
 
-  // Add title and summary
+  // Add title and summary with date range info
   worksheet.insertRow(1, [`Attendance Report - Detailed`])
   worksheet.insertRow(2, [`Generated: ${new Date().toLocaleString()}`])
   if (startDate && endDate) {
@@ -217,10 +217,18 @@ interface SummaryEntry {
 async function createSummarySheet(
   workbook: ExcelJS.Workbook, 
   records: AttendanceRecord[], 
-  _startDate?: string, 
-  _endDate?: string
+  startDate?: string, 
+  endDate?: string
 ) {
   const worksheet = workbook.addWorksheet('Attendance Summary')
+
+  // Add report header with date range
+  worksheet.addRow(['Attendance Summary Report'])
+  worksheet.addRow([`Generated: ${new Date().toLocaleString()}`])
+  if (startDate && endDate) {
+    worksheet.addRow([`Period: ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`])
+  }
+  worksheet.addRow([]) // Empty row
 
   // Group records by employee and date
   const summary = new Map<string, SummaryEntry>()
@@ -269,7 +277,7 @@ async function createSummarySheet(
   worksheet.addRow(headers)
 
   // Style header
-  const headerRow = worksheet.getRow(1)
+  const headerRow = worksheet.getRow(worksheet.rowCount)
   headerRow.font = { bold: true }
   headerRow.fill = {
     type: 'pattern',
@@ -310,10 +318,18 @@ interface DailyRecord {
 async function createTimesheetSheet(
   workbook: ExcelJS.Workbook, 
   records: AttendanceRecord[], 
-  _startDate?: string, 
-  _endDate?: string
+  startDate?: string, 
+  endDate?: string
 ) {
   const worksheet = workbook.addWorksheet('Timesheet')
+
+  // Add report header with date range
+  worksheet.addRow(['Timesheet Report'])
+  worksheet.addRow([`Generated: ${new Date().toLocaleString()}`])
+  if (startDate && endDate) {
+    worksheet.addRow([`Period: ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`])
+  }
+  worksheet.addRow([]) // Empty row
 
   // Group by employee
   const employeeRecords = new Map<string, { employee: AttendanceRecord['employee'], records: AttendanceRecord[] }>()
@@ -327,7 +343,7 @@ async function createTimesheetSheet(
     employeeRecords.get(record.employee.userId)!.records.push(record)
   })
 
-  let currentRow = 1
+  let currentRow = worksheet.rowCount + 1
 
   employeeRecords.forEach(({ employee, records: empRecords }) => {
     // Employee header

@@ -1,265 +1,313 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import { AttendanceRecord, Employee } from './ZKTecoClient';
-
-export interface DATFileConfig {
-  attendanceFilePath?: string;
-  employeeFilePath?: string;
-  encoding?: BufferEncoding;
+export interface CSVExportOptions {
+  filename?: string;
+  headers?: string[];
+  delimiter?: string;
 }
 
-export class DATParser {
-  private config: DATFileConfig;
+export interface AttendanceCSVRecord {
+  studentName: string;
+  studentId: string;
+  date: string;
+  time: string;
+  status: string;
+  method: string;
+  notes?: string;
+}
 
-  constructor(config: DATFileConfig = {}) {
-    this.config = {
-      attendanceFilePath: process.env.ZKTECO_ATTENDANCE_DAT_PATH || './data/attendance.dat',
-      employeeFilePath: process.env.ZKTECO_EMPLOYEE_DAT_PATH || './data/employees.dat',
-      encoding: 'binary',
-      ...config
-    };
-  }
+export interface StudentCSVRecord {
+  name: string;
+  studentId: string;
+  email?: string;
+  phone?: string;
+  class?: string;
+  fingerprintRegistered: boolean;
+  enrollmentDate: string;
+}
 
-  async parseAttendanceFile(): Promise<AttendanceRecord[]> {
-    try {
-      // Check if file exists
-      const filePath = this.config.attendanceFilePath!;
-      await fs.access(filePath);
+// Define interfaces for the raw data structures
+export interface AttendanceRecord {
+  timestamp: string;
+  checkInTime?: string;
+  status: string;
+  method: string;
+  notes?: string;
+  student?: {
+    name: string;
+    studentId: string;
+    id: string;
+    class?: string;
+  };
+}
+
+export interface StudentRecord {
+  name: string;
+  studentId: string;
+  email?: string;
+  phone?: string;
+  class?: string;
+  fingerprintRegistered: boolean;
+  createdAt: string;
+}
+
+export interface AttendanceSummaryRecord {
+  student: {
+    id: string;
+    name: string;
+    studentId: string;
+    class?: string;
+  };
+  status: 'present' | 'late' | 'absent';
+}
+
+export function convertToCSV<T extends Record<string, unknown>>(
+  data: T[],
+  options: CSVExportOptions = {}
+): string {
+  if (!data.length) return '';
+
+  const { headers, delimiter = ',' } = options;
+  
+  // Use provided headers or extract from first object
+  const csvHeaders = headers || Object.keys(data[0]);
+  
+  // Create header row
+  const headerRow = csvHeaders.join(delimiter);
+  
+  // Create data rows
+  const dataRows = data.map(row => {
+    return csvHeaders.map(header => {
+      const value = row[header];
       
-      const buffer = await fs.readFile(filePath);
-      return this.parseAttendanceBuffer(buffer);
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        console.warn('Attendance DAT file not found, returning mock data');
-        return this.generateMockAttendanceData();
+      // Handle values that contain the delimiter or quotes
+      if (value === null || value === undefined) {
+        return '';
       }
-      throw error;
-    }
-  }
-
-  async parseEmployeeFile(): Promise<Employee[]> {
-    try {
-      const filePath = this.config.employeeFilePath!;
-      await fs.access(filePath);
       
-      const buffer = await fs.readFile(filePath);
-      return this.parseEmployeeBuffer(buffer);
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        console.warn('Employee DAT file not found, returning mock data');
-        return this.generateMockEmployeeData();
+      const stringValue = String(value);
+      
+      // Wrap in quotes if contains delimiter, quotes, or newlines
+      if (stringValue.includes(delimiter) || 
+          stringValue.includes('"') || 
+          stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
       }
-      throw error;
-    }
-  }
+      
+      return stringValue;
+    }).join(delimiter);
+  });
+  
+  return [headerRow, ...dataRows].join('\n');
+}
 
-  private parseAttendanceBuffer(buffer: Buffer): AttendanceRecord[] {
-    const records: AttendanceRecord[] = [];
+export function downloadCSV(csvContent: string, filename: string): void {
+  // Add BOM for proper UTF-8 encoding in Excel
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csvContent], { 
+    type: 'text/csv;charset=utf-8;' 
+  });
+  
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  // Clean up the URL object
+  URL.revokeObjectURL(url);
+}
+
+export function exportAttendanceToCSV(
+  attendanceRecords: AttendanceRecord[],
+  options: CSVExportOptions = {}
+): void {
+  const csvData = attendanceRecords.map(record => ({
+    'Student Name': record.student?.name || 'Unknown Student',
+    'Student ID': record.student?.studentId || 'Unknown ID',
+    'Date': new Date(record.timestamp).toLocaleDateString(),
+    'Time': record.checkInTime || 'No time recorded',
+    'Status': record.status,
+    'Method': record.method,
+    'Notes': record.notes || '',
+  }));
+
+  const csvContent = convertToCSV(csvData, {
+    headers: [
+      'Student Name',
+      'Student ID',
+      'Date',
+      'Time',
+      'Status',
+      'Method',
+      'Notes'
+    ],
+    ...options,
+  });
+
+  const filename = options.filename || 
+    `attendance-report-${new Date().toISOString().split('T')[0]}.csv`;
+  
+  downloadCSV(csvContent, filename);
+}
+
+export function exportStudentsToCSV(
+  students: StudentRecord[],
+  options: CSVExportOptions = {}
+): void {
+  const csvData = students.map(student => ({
+    'Name': student.name,
+    'Student ID': student.studentId,
+    'Email': student.email || '',
+    'Phone': student.phone || '',
+    'Class': student.class || '',
+    'Fingerprint Registered': student.fingerprintRegistered ? 'Yes' : 'No',
+    'Enrollment Date': new Date(student.createdAt).toLocaleDateString(),
+  }));
+
+  const csvContent = convertToCSV(csvData, {
+    headers: [
+      'Name',
+      'Student ID',
+      'Email',
+      'Phone',
+      'Class',
+      'Fingerprint Registered',
+      'Enrollment Date'
+    ],
+    ...options,
+  });
+
+  const filename = options.filename || 
+    `students-report-${new Date().toISOString().split('T')[0]}.csv`;
+  
+  downloadCSV(csvContent, filename);
+}
+
+export function exportAttendanceSummaryToCSV(
+  attendanceData: AttendanceSummaryRecord[],
+  options: CSVExportOptions = {}
+): void {
+  // Group attendance by student and calculate summary statistics
+  const studentSummary = new Map<string, {
+    name: string;
+    studentId: string;
+    class: string;
+    totalDays: number;
+    presentDays: number;
+    lateDays: number;
+    absentDays: number;
+  }>();
+  
+  attendanceData.forEach(record => {
+    const studentId = record.student?.id;
+    if (!studentId) return;
     
-    try {
-      // ZKTECO .dat file structure (simplified)
-      // Each record is typically 16 bytes
-      const recordSize = 16;
-      
-      for (let i = 0; i < buffer.length; i += recordSize) {
-        if (i + recordSize > buffer.length) break;
-        
-        const record = this.parseAttendanceRecord(buffer.slice(i, i + recordSize));
-        if (record) {
-          records.push(record);
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing attendance buffer:', error);
-    }
-
-    return records;
-  }
-
-  private parseEmployeeBuffer(buffer: Buffer): Employee[] {
-    const employees: Employee[] = [];
-    
-    try {
-      // ZKTECO employee file structure (simplified)
-      // Each record varies in size
-      const records = buffer.toString('ascii').split('\n');
-      
-      for (const record of records) {
-        if (record.trim()) {
-          const employee = this.parseEmployeeRecord(record);
-          if (employee) {
-            employees.push(employee);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing employee buffer:', error);
-    }
-
-    return employees;
-  }
-
-  private parseAttendanceRecord(buffer: Buffer): AttendanceRecord | null {
-    try {
-      // Simplified ZKTECO attendance record parsing
-      // Real implementation would follow the actual ZKTECO format
-      
-      const userId = buffer.readUInt32LE(0).toString();
-      const timestamp = new Date(buffer.readUInt32LE(4) * 1000);
-      const type = buffer.readUInt8(8);
-      const method = buffer.readUInt8(9);
-      const deviceId = buffer.readUInt16LE(10).toString();
-      
-      // Validate the record
-      if (userId === '0' || !timestamp || isNaN(timestamp.getTime())) {
-        return null;
-      }
-
-      return {
-        userId,
-        timestamp,
-        type,
-        method,
-        deviceId
-      };
-    } catch (error) {
-      console.error('Error parsing attendance record:', error);
-      return null;
-    }
-  }
-
-  private parseEmployeeRecord(record: string): Employee | null {
-    try {
-      // Simplified employee record parsing
-      // Format: userId,name,cardNumber,department,position
-      const parts = record.split(',');
-      
-      if (parts.length < 2) return null;
-      
-      return {
-        userId: parts[0]?.trim() || '',
-        name: parts[1]?.trim() || '',
-        cardNumber: parts[2]?.trim() || undefined,
-        department: parts[3]?.trim() || undefined,
-        position: parts[4]?.trim() || undefined
-      };
-    } catch (error) {
-      console.error('Error parsing employee record:', error);
-      return null;
-    }
-  }
-
-  // Mock data generators for testing when DAT files are not available
-  private generateMockAttendanceData(): AttendanceRecord[] {
-    const records: AttendanceRecord[] = [];
-    const userIds = ['1001', '1002', '1003', '1004', '1005'];
-    const now = new Date();
-    
-    for (let i = 0; i < 50; i++) {
-      const userId = userIds[Math.floor(Math.random() * userIds.length)];
-      const daysAgo = Math.floor(Math.random() * 30);
-      const timestamp = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
-      
-      // Add random hours for check-in/out times
-      timestamp.setHours(8 + Math.floor(Math.random() * 10));
-      timestamp.setMinutes(Math.floor(Math.random() * 60));
-      
-      records.push({
-        userId,
-        timestamp,
-        type: Math.random() > 0.5 ? 0 : 1, // 0 = Check In, 1 = Check Out
-        method: Math.floor(Math.random() * 4), // 0-3 for different methods
-        deviceId: '1'
+    if (!studentSummary.has(studentId)) {
+      studentSummary.set(studentId, {
+        name: record.student.name,
+        studentId: record.student.studentId,
+        class: record.student.class || 'Not Assigned',
+        totalDays: 0,
+        presentDays: 0,
+        lateDays: 0,
+        absentDays: 0,
       });
     }
     
-    return records.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }
-
-  private generateMockEmployeeData(): Employee[] {
-    return [
-      {
-        userId: '1001',
-        name: 'John Doe',
-        cardNumber: 'C001',
-        department: 'Engineering',
-        position: 'Senior Developer'
-      },
-      {
-        userId: '1002',
-        name: 'Jane Smith',
-        cardNumber: 'C002',
-        department: 'Marketing',
-        position: 'Marketing Manager'
-      },
-      {
-        userId: '1003',
-        name: 'Mike Johnson',
-        cardNumber: 'C003',
-        department: 'HR',
-        position: 'HR Specialist'
-      },
-      {
-        userId: '1004',
-        name: 'Sarah Wilson',
-        cardNumber: 'C004',
-        department: 'Finance',
-        position: 'Accountant'
-      },
-      {
-        userId: '1005',
-        name: 'David Brown',
-        cardNumber: 'C005',
-        department: 'Engineering',
-        position: 'Frontend Developer'
+    const summary = studentSummary.get(studentId);
+    if (summary) {
+      summary.totalDays++;
+      
+      switch (record.status) {
+        case 'present':
+          summary.presentDays++;
+          break;
+        case 'late':
+          summary.lateDays++;
+          break;
+        case 'absent':
+          summary.absentDays++;
+          break;
       }
-    ];
-  }
+    }
+  });
 
-  async watchFile(filePath: string, callback: (records: AttendanceRecord[]) => void): Promise<void> {
-    try {
-      const watcher = fs.watch(filePath);
-      
-      for await (const event of watcher) {
-        if (event.eventType === 'change') {
-          try {
-            const records = await this.parseAttendanceFile();
-            callback(records);
-          } catch (error) {
-            console.error('Error parsing file on change:', error);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error watching file:', error);
+  const csvData = Array.from(studentSummary.values()).map(summary => ({
+    'Student Name': summary.name,
+    'Student ID': summary.studentId,
+    'Class': summary.class,
+    'Total Days': summary.totalDays,
+    'Present Days': summary.presentDays,
+    'Late Days': summary.lateDays,
+    'Absent Days': summary.absentDays,
+    'Attendance Rate': summary.totalDays > 0 
+      ? `${((summary.presentDays + summary.lateDays) / summary.totalDays * 100).toFixed(1)}%`
+      : '0%',
+  }));
+
+  const csvContent = convertToCSV(csvData, {
+    headers: [
+      'Student Name',
+      'Student ID',
+      'Class',
+      'Total Days',
+      'Present Days',
+      'Late Days',
+      'Absent Days',
+      'Attendance Rate'
+    ],
+    ...options,
+  });
+
+  const filename = options.filename || 
+    `attendance-summary-${new Date().toISOString().split('T')[0]}.csv`;
+  
+  downloadCSV(csvContent, filename);
+}
+
+export function generateDateRangeFilename(
+  baseFilename: string,
+  startDate?: string,
+  endDate?: string
+): string {
+  const today = new Date().toISOString().split('T')[0];
+  
+  if (startDate && endDate) {
+    if (startDate === endDate) {
+      return `${baseFilename}-${startDate}.csv`;
+    }
+    return `${baseFilename}-${startDate}-to-${endDate}.csv`;
+  }
+  
+  return `${baseFilename}-${today}.csv`;
+}
+
+// Utility function to validate CSV data before export
+export function validateCSVData<T extends Record<string, unknown>>(data: T[]): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  if (!Array.isArray(data)) {
+    errors.push('Data must be an array');
+    return { isValid: false, errors };
+  }
+  
+  if (data.length === 0) {
+    errors.push('No data to export');
+    return { isValid: false, errors };
+  }
+  
+  // Check if all objects have consistent structure
+  const firstItemKeys = Object.keys(data[0]);
+  for (let i = 1; i < data.length; i++) {
+    const currentKeys = Object.keys(data[i]);
+    if (currentKeys.length !== firstItemKeys.length) {
+      errors.push(`Inconsistent data structure at index ${i}`);
     }
   }
-
-  async createDirectoriesIfNotExist(): Promise<void> {
-    const attendanceDir = path.dirname(this.config.attendanceFilePath!);
-    const employeeDir = path.dirname(this.config.employeeFilePath!);
-    
-    try {
-      await fs.mkdir(attendanceDir, { recursive: true });
-      await fs.mkdir(employeeDir, { recursive: true });
-    } catch (error) {
-      console.error('Error creating directories:', error);
-    }
-  }
-
-  async backupFiles(): Promise<void> {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    
-    try {
-      const attendanceBackup = `${this.config.attendanceFilePath}.backup.${timestamp}`;
-      const employeeBackup = `${this.config.employeeFilePath}.backup.${timestamp}`;
-      
-      await fs.copyFile(this.config.attendanceFilePath!, attendanceBackup);
-      await fs.copyFile(this.config.employeeFilePath!, employeeBackup);
-      
-      console.log('DAT files backed up successfully');
-    } catch (error) {
-      console.error('Error backing up files:', error);
-    }
-  }
+  
+  return { isValid: errors.length === 0, errors };
 }

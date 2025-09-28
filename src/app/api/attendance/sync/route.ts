@@ -5,8 +5,14 @@ import { AttendanceSync } from '@/lib/zkteco/AttendanceSync'
 
 const prisma = new PrismaClient()
 
+// Define types for better type safety
+interface SyncWhereClause {
+  syncType: string;
+  deviceId?: string;
+}
+
 // POST /api/attendance/sync - Sync attendance from ZKTECO device
-export async function POST(request: NextRequest) {
+export async function POST() {
   const syncLog = await prisma.syncLog.create({
     data: {
       deviceId: process.env.ZKTECO_DEVICE_ID || '1',
@@ -82,15 +88,19 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Sync error:', error)
+    
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Unknown sync error occurred'
     
     // Update sync log with error
     await prisma.syncLog.update({
       where: { id: syncLog.id },
       data: {
         status: 'FAILED',
-        errorMessage: error.message,
+        errorMessage,
         endTime: new Date()
       }
     })
@@ -108,7 +118,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: error.message || 'Sync failed',
+        error: errorMessage,
         syncId: syncLog.id
       },
       { status: 500 }
@@ -123,7 +133,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const deviceId = searchParams.get('deviceId')
 
-    const where: any = { syncType: 'ATTENDANCE' }
+    const where: SyncWhereClause = { syncType: 'ATTENDANCE' }
     if (deviceId) {
       where.deviceId = deviceId
     }
@@ -164,8 +174,13 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching sync status:', error)
+    
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Failed to fetch sync status'
+      
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch sync status' },
+      { success: false, error: errorMessage },
       { status: 500 }
     )
   }

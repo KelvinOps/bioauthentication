@@ -6,7 +6,6 @@ import {
   Calendar, 
   FileText, 
   Download, 
-  Filter, 
   TrendingUp, 
   Users, 
   Clock, 
@@ -148,8 +147,18 @@ export default function ReportsPage() {
               <div className="card hover:bg-slate-900/70 transition-all duration-200 cursor-pointer group">
                 <div className="card-content">
                   <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-lg bg-${report.color}-500/10`}>
-                      <IconComponent className={`w-6 h-6 text-${report.color}-400`} />
+                    <div className={`p-3 rounded-lg ${
+                      report.color === 'blue' ? 'bg-blue-500/10' :
+                      report.color === 'green' ? 'bg-green-500/10' :
+                      report.color === 'purple' ? 'bg-purple-500/10' :
+                      'bg-orange-500/10'
+                    }`}>
+                      <IconComponent className={`w-6 h-6 ${
+                        report.color === 'blue' ? 'text-blue-400' :
+                        report.color === 'green' ? 'text-green-400' :
+                        report.color === 'purple' ? 'text-purple-400' :
+                        'text-orange-400'
+                      }`} />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">
@@ -278,7 +287,7 @@ export default function ReportsPage() {
             <div className="space-y-3">
               <button className="w-full btn-secondary justify-start">
                 <Calendar className="w-4 h-4 mr-3" />
-                Generate Today's Report
+                Generate Today&apos;s Report
               </button>
               <button className="w-full btn-secondary justify-start">
                 <BarChart3 className="w-4 h-4 mr-3" />

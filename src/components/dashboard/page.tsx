@@ -9,7 +9,6 @@ import QuickActions from '@/components/dashboard/QuickActions'
 import {
   Users,
   Clock,
-  Calendar,
   TrendingUp,
   AlertCircle,
   CheckCircle,
@@ -85,7 +84,7 @@ export default function DashboardPage() {
             Dashboard
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Welcome back! Here's what's happening with your attendance system today.
+            Welcome back! Here&apos;s what&apos;s happening with your attendance system today.
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -188,7 +187,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                This Month's Attendance
+                This Month&apos;s Attendance
               </p>
               <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                 94.2%

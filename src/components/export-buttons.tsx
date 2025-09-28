@@ -8,18 +8,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 
+// Define a proper interface for the data items
+interface ExportDataItem {
+  id?: string | number;
+  [key: string]: unknown; // Allow any additional properties
+}
+
 interface ExportButtonsProps {
   onExport?: (format: "excel" | "csv" | "pdf") => void;
   isExporting?: boolean;
-  data?: any[];
-  filename?: string;
+  data?: ExportDataItem[];
 }
 
 export function ExportButtons({
   onExport,
   isExporting = false,
   data = [],
-  filename = "attendance_report",
 }: ExportButtonsProps) {
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
 

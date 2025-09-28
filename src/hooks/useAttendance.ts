@@ -26,6 +26,13 @@ export interface AttendanceRecord {
   };
 }
 
+// Define proper error type
+interface ApiError {
+  message: string;
+  code?: string;
+  details?: unknown;
+}
+
 export function useAttendance(filters?: AttendanceFilters) {
   return useQuery({
     queryKey: ["/api/attendance", filters],
@@ -82,7 +89,7 @@ export function useCreateAttendance() {
       const response = await apiRequest("POST", "/api/attendance", attendanceData);
       return await response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Attendance Recorded",
         description: "Attendance has been successfully recorded",
@@ -93,10 +100,11 @@ export function useCreateAttendance() {
       queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const apiError = error as ApiError;
       toast({
         title: "Failed to Record Attendance",
-        description: error.message || "An error occurred while recording attendance",
+        description: apiError.message || "An error occurred while recording attendance",
         variant: "destructive",
       });
     },
@@ -129,10 +137,11 @@ export function useUpdateAttendance() {
       queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const apiError = error as ApiError;
       toast({
         title: "Failed to Update Attendance",
-        description: error.message || "An error occurred while updating attendance",
+        description: apiError.message || "An error occurred while updating attendance",
         variant: "destructive",
       });
     },
@@ -167,7 +176,7 @@ export function useExportAttendance() {
         title: "Export Started",
         description: "Attendance report is being downloaded",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Export Failed",
         description: "Failed to export attendance data",

@@ -20,7 +20,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const [darkMode, setDarkMode] = useState(true)
-  const [deviceStatus, setDeviceStatus] = useState<'online' | 'offline'>('online')
+  const [deviceStatus] = useState<'online' | 'offline'>('online')
   const [showProfileMenu, setShowProfileMenu] = useState(false)
 
   const toggleDarkMode = () => {

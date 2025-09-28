@@ -24,7 +24,42 @@ export interface StudentCSVRecord {
   enrollmentDate: string;
 }
 
-export function convertToCSV<T extends Record<string, any>>(
+// Define interfaces for the raw data structures
+export interface AttendanceRecord {
+  timestamp: string;
+  checkInTime?: string;
+  status: string;
+  method: string;
+  notes?: string;
+  student?: {
+    name: string;
+    studentId: string;
+    id: string;
+    class?: string;
+  };
+}
+
+export interface StudentRecord {
+  name: string;
+  studentId: string;
+  email?: string;
+  phone?: string;
+  class?: string;
+  fingerprintRegistered: boolean;
+  createdAt: string;
+}
+
+export interface AttendanceSummaryRecord {
+  student: {
+    id: string;
+    name: string;
+    studentId: string;
+    class?: string;
+  };
+  status: 'present' | 'late' | 'absent';
+}
+
+export function convertToCSV<T extends Record<string, unknown>>(
   data: T[],
   options: CSVExportOptions = {}
 ): string {
@@ -87,17 +122,17 @@ export function downloadCSV(csvContent: string, filename: string): void {
 }
 
 export function exportAttendanceToCSV(
-  attendanceRecords: any[],
+  attendanceRecords: AttendanceRecord[],
   options: CSVExportOptions = {}
 ): void {
-  const csvData: AttendanceCSVRecord[] = attendanceRecords.map(record => ({
-    studentName: record.student?.name || 'Unknown Student',
-    studentId: record.student?.studentId || 'Unknown ID',
-    date: new Date(record.timestamp).toLocaleDateString(),
-    time: record.checkInTime || 'No time recorded',
-    status: record.status,
-    method: record.method,
-    notes: record.notes || '',
+  const csvData = attendanceRecords.map(record => ({
+    'Student Name': record.student?.name || 'Unknown Student',
+    'Student ID': record.student?.studentId || 'Unknown ID',
+    'Date': new Date(record.timestamp).toLocaleDateString(),
+    'Time': record.checkInTime || 'No time recorded',
+    'Status': record.status,
+    'Method': record.method,
+    'Notes': record.notes || '',
   }));
 
   const csvContent = convertToCSV(csvData, {
@@ -120,17 +155,17 @@ export function exportAttendanceToCSV(
 }
 
 export function exportStudentsToCSV(
-  students: any[],
+  students: StudentRecord[],
   options: CSVExportOptions = {}
 ): void {
-  const csvData: StudentCSVRecord[] = students.map(student => ({
-    name: student.name,
-    studentId: student.studentId,
-    email: student.email || '',
-    phone: student.phone || '',
-    class: student.class || '',
-    fingerprintRegistered: student.fingerprintRegistered ? 'Yes' : 'No',
-    enrollmentDate: new Date(student.createdAt).toLocaleDateString(),
+  const csvData = students.map(student => ({
+    'Name': student.name,
+    'Student ID': student.studentId,
+    'Email': student.email || '',
+    'Phone': student.phone || '',
+    'Class': student.class || '',
+    'Fingerprint Registered': student.fingerprintRegistered ? 'Yes' : 'No',
+    'Enrollment Date': new Date(student.createdAt).toLocaleDateString(),
   }));
 
   const csvContent = convertToCSV(csvData, {
@@ -153,11 +188,19 @@ export function exportStudentsToCSV(
 }
 
 export function exportAttendanceSummaryToCSV(
-  attendanceData: any[],
+  attendanceData: AttendanceSummaryRecord[],
   options: CSVExportOptions = {}
 ): void {
   // Group attendance by student and calculate summary statistics
-  const studentSummary = new Map();
+  const studentSummary = new Map<string, {
+    name: string;
+    studentId: string;
+    class: string;
+    totalDays: number;
+    presentDays: number;
+    lateDays: number;
+    absentDays: number;
+  }>();
   
   attendanceData.forEach(record => {
     const studentId = record.student?.id;
@@ -176,30 +219,32 @@ export function exportAttendanceSummaryToCSV(
     }
     
     const summary = studentSummary.get(studentId);
-    summary.totalDays++;
-    
-    switch (record.status) {
-      case 'present':
-        summary.presentDays++;
-        break;
-      case 'late':
-        summary.lateDays++;
-        break;
-      case 'absent':
-        summary.absentDays++;
-        break;
+    if (summary) {
+      summary.totalDays++;
+      
+      switch (record.status) {
+        case 'present':
+          summary.presentDays++;
+          break;
+        case 'late':
+          summary.lateDays++;
+          break;
+        case 'absent':
+          summary.absentDays++;
+          break;
+      }
     }
   });
 
   const csvData = Array.from(studentSummary.values()).map(summary => ({
-    studentName: summary.name,
-    studentId: summary.studentId,
-    class: summary.class,
-    totalDays: summary.totalDays,
-    presentDays: summary.presentDays,
-    lateDays: summary.lateDays,
-    absentDays: summary.absentDays,
-    attendanceRate: summary.totalDays > 0 
+    'Student Name': summary.name,
+    'Student ID': summary.studentId,
+    'Class': summary.class,
+    'Total Days': summary.totalDays,
+    'Present Days': summary.presentDays,
+    'Late Days': summary.lateDays,
+    'Absent Days': summary.absentDays,
+    'Attendance Rate': summary.totalDays > 0 
       ? `${((summary.presentDays + summary.lateDays) / summary.totalDays * 100).toFixed(1)}%`
       : '0%',
   }));
@@ -242,7 +287,7 @@ export function generateDateRangeFilename(
 }
 
 // Utility function to validate CSV data before export
-export function validateCSVData<T>(data: T[]): { isValid: boolean; errors: string[] } {
+export function validateCSVData<T extends Record<string, unknown>>(data: T[]): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   
   if (!Array.isArray(data)) {

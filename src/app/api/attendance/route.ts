@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { ZKTecoClient } from '@/lib/zkteco/ZKTecoClient'
 
 const prisma = new PrismaClient()
+
+// Define proper type for where clause
+interface AttendanceWhereClause {
+  timestamp?: {
+    gte: Date;
+    lte: Date;
+  };
+  employeeId?: string;
+}
 
 // GET /api/attendance - Fetch attendance records
 export async function GET(request: NextRequest) {
@@ -15,8 +23,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const skip = (page - 1) * limit
 
-    // Build where clause
-    const where: any = {}
+    // Build where clause with proper typing
+    const where: AttendanceWhereClause = {}
 
     if (startDate && endDate) {
       where.timestamp = {
