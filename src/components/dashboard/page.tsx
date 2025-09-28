@@ -146,11 +146,7 @@ export default function DashboardPage() {
 
         {/* Device Status - Takes 1 column */}
         <div className="space-y-6">
-          <DeviceStatus 
-            status={stats.deviceStatus}
-            lastSync={stats.lastSync}
-            totalRecords={stats.totalAttendanceRecords}
-          />
+          <DeviceStatus />
           <QuickActions />
         </div>
       </div>

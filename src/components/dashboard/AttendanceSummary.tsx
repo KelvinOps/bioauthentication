@@ -1,8 +1,10 @@
+//dashboard/ AttendanceSummary.tsx
+// 
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { LoadingSpinner } from '@/components/ui/loadingspinner';
 import { Users, UserCheck, UserX, Clock } from 'lucide-react';
 
 interface AttendanceStats {
@@ -34,7 +36,8 @@ export default function AttendanceSummary() {
       const data = await response.json();
       setStats(data.stats);
     } catch (error) {
-      setError(error.message);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setError(errorMessage);
       console.error('Error fetching attendance stats:', error);
     } finally {
       setLoading(false);

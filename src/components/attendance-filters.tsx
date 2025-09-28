@@ -127,7 +127,7 @@ export function AttendanceFilters({ onFiltersChange, isLoading = false }: Attend
                   <Calendar
                     mode="single"
                     selected={filters.dateFrom || undefined}
-                    onSelect={(selectedDate) => updateFilters({ dateFrom: selectedDate || null })}
+                    onSelect={(selectedDate: Date | undefined) => updateFilters({ dateFrom: selectedDate || null })}
                     initialFocus
                   />
                 </PopoverContent>
@@ -153,7 +153,7 @@ export function AttendanceFilters({ onFiltersChange, isLoading = false }: Attend
                   <Calendar
                     mode="single"
                     selected={filters.dateTo || undefined}
-                    onSelect={(selectedDate) => updateFilters({ dateTo: selectedDate || null })}
+                    onSelect={(selectedDate: Date | undefined) => updateFilters({ dateTo: selectedDate || null })}
                     initialFocus
                   />
                 </PopoverContent>
