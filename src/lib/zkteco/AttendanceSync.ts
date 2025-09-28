@@ -1,4 +1,5 @@
-import { PrismaClient, AttendanceType, AttendanceMethod } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+import type { AttendanceType, AttendanceMethod } from '@prisma/client'
 import { ZKTecoClient, AttendanceRecord } from './ZKTecoClient'
 
 export interface SyncResult {
@@ -104,7 +105,7 @@ export class AttendanceSync {
         employeeId: employee.id,
         userId: record.userId,
         timestamp: record.timestamp,
-        type: mappedType // Use the mapped type directly
+        type: mappedType
       }
     })
 
@@ -129,7 +130,7 @@ export class AttendanceSync {
           employeeId: employee.id,
           userId: record.userId,
           timestamp: record.timestamp,
-          type: mappedType, // Use the mapped type directly
+          type: mappedType,
           method: this.mapAttendanceMethod(record.method),
           deviceId: record.deviceId,
           source: 'ZKTECO',
@@ -143,24 +144,24 @@ export class AttendanceSync {
   private mapAttendanceType(deviceType: number): AttendanceType {
     // Map device attendance types to our enum
     switch (deviceType) {
-      case 0: return AttendanceType.CHECK_IN
-      case 1: return AttendanceType.CHECK_OUT
-      case 2: return AttendanceType.BREAK_IN
-      case 3: return AttendanceType.BREAK_OUT
-      case 4: return AttendanceType.OVERTIME_IN
-      case 5: return AttendanceType.OVERTIME_OUT
-      default: return AttendanceType.CHECK_IN
+      case 0: return 'CHECK_IN' as AttendanceType
+      case 1: return 'CHECK_OUT' as AttendanceType
+      case 2: return 'BREAK_IN' as AttendanceType
+      case 3: return 'BREAK_OUT' as AttendanceType
+      case 4: return 'OVERTIME_IN' as AttendanceType
+      case 5: return 'OVERTIME_OUT' as AttendanceType
+      default: return 'CHECK_IN' as AttendanceType
     }
   }
 
   private mapAttendanceMethod(deviceMethod: number): AttendanceMethod {
     // Map device authentication methods to our enum
     switch (deviceMethod) {
-      case 0: return AttendanceMethod.PASSWORD
-      case 1: return AttendanceMethod.FINGERPRINT
-      case 2: return AttendanceMethod.CARD
-      case 3: return AttendanceMethod.FACE
-      default: return AttendanceMethod.FINGERPRINT
+      case 0: return 'PASSWORD' as AttendanceMethod
+      case 1: return 'FINGERPRINT' as AttendanceMethod
+      case 2: return 'CARD' as AttendanceMethod
+      case 3: return 'FACE' as AttendanceMethod
+      default: return 'FINGERPRINT' as AttendanceMethod
     }
   }
 

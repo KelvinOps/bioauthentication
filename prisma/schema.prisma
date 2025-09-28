@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -26,17 +29,17 @@ model Employee {
 }
 
 model Attendance {
-  id         String      @id @default(cuid())
+  id         String           @id @default(cuid())
   employeeId String
-  userId     String      // ZKTECO device user ID
+  userId     String           // ZKTECO device user ID
   timestamp  DateTime
   type       AttendanceType
   method     AttendanceMethod
   deviceId   String?
-  source     String      @default("ZKTECO") // Source device/system
-  synced     Boolean     @default(false)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  source     String           @default("ZKTECO") // Source device/system
+  synced     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
@@ -47,36 +50,36 @@ model Attendance {
 }
 
 model Device {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
-  ipAddress   String   @unique
+  ipAddress   String       @unique
   port        Int
   deviceId    String
-  model       String   @default("ZKTECO K40 Pro")
+  model       String       @default("ZKTECO K40 Pro")
   location    String?
-  isActive    Boolean  @default(true)
+  isActive    Boolean      @default(true)
   lastSync    DateTime?
   lastPing    DateTime?
   status      DeviceStatus @default(OFFLINE)
   firmware    String?
   totalUsers  Int?
   totalLogs   Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@map("devices")
 }
 
 model SyncLog {
-  id           String    @id @default(cuid())
+  id           String     @id @default(cuid())
   deviceId     String
   syncType     SyncType
   status       SyncStatus
-  recordCount  Int       @default(0)
+  recordCount  Int        @default(0)
   errorMessage String?
   startTime    DateTime
   endTime      DateTime?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime   @default(now())
 
   @@index([deviceId, syncType])
   @@index([startTime])
@@ -84,10 +87,10 @@ model SyncLog {
 }
 
 model SystemSettings {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
-  type  String @default("string")
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string")
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
