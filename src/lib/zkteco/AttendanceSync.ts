@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client'
-import type { AttendanceType, AttendanceMethod } from '@prisma/client'
 import { ZKTecoClient, AttendanceRecord } from './ZKTecoClient'
+
+// Define our own types to avoid Prisma import issues
+export type AttendanceType = 'CHECK_IN' | 'CHECK_OUT' | 'BREAK_IN' | 'BREAK_OUT' | 'OVERTIME_IN' | 'OVERTIME_OUT'
+export type AttendanceMethod = 'FINGERPRINT' | 'CARD' | 'PASSWORD' | 'FACE'
 
 export interface SyncResult {
   newRecords: number
@@ -144,24 +147,24 @@ export class AttendanceSync {
   private mapAttendanceType(deviceType: number): AttendanceType {
     // Map device attendance types to our enum
     switch (deviceType) {
-      case 0: return 'CHECK_IN' as AttendanceType
-      case 1: return 'CHECK_OUT' as AttendanceType
-      case 2: return 'BREAK_IN' as AttendanceType
-      case 3: return 'BREAK_OUT' as AttendanceType
-      case 4: return 'OVERTIME_IN' as AttendanceType
-      case 5: return 'OVERTIME_OUT' as AttendanceType
-      default: return 'CHECK_IN' as AttendanceType
+      case 0: return 'CHECK_IN'
+      case 1: return 'CHECK_OUT'
+      case 2: return 'BREAK_IN'
+      case 3: return 'BREAK_OUT'
+      case 4: return 'OVERTIME_IN'
+      case 5: return 'OVERTIME_OUT'
+      default: return 'CHECK_IN'
     }
   }
 
   private mapAttendanceMethod(deviceMethod: number): AttendanceMethod {
     // Map device authentication methods to our enum
     switch (deviceMethod) {
-      case 0: return 'PASSWORD' as AttendanceMethod
-      case 1: return 'FINGERPRINT' as AttendanceMethod
-      case 2: return 'CARD' as AttendanceMethod
-      case 3: return 'FACE' as AttendanceMethod
-      default: return 'FINGERPRINT' as AttendanceMethod
+      case 0: return 'PASSWORD'
+      case 1: return 'FINGERPRINT'
+      case 2: return 'CARD'
+      case 3: return 'FACE'
+      default: return 'FINGERPRINT'
     }
   }
 
