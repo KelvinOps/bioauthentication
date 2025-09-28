@@ -5,12 +5,6 @@ import { AttendanceSync } from '@/lib/zkteco/AttendanceSync'
 
 const prisma = new PrismaClient()
 
-// Define types for better type safety
-interface SyncWhereClause {
-  syncType: string;
-  deviceId?: string;
-}
-
 // POST /api/attendance/sync - Sync attendance from ZKTECO device
 export async function POST() {
   const syncLog = await prisma.syncLog.create({
@@ -67,7 +61,7 @@ export async function POST() {
       where: { id: syncLog.id },
       data: {
         status: errors.length > 0 ? 'PARTIAL' : 'SUCCESS',
-        recordCount: newRecords.length + updatedRecords.length,
+        recordCount: newRecords + updatedRecords, // Now these are numbers, not arrays
         errorMessage: errors.length > 0 ? errors.join('; ') : null,
         endTime: new Date()
       }
@@ -80,9 +74,9 @@ export async function POST() {
       success: true,
       data: {
         syncId: syncLog.id,
-        newRecords: newRecords.length,
-        updatedRecords: updatedRecords.length,
-        totalSynced: newRecords.length + updatedRecords.length,
+        newRecords: newRecords, // Already a number
+        updatedRecords: updatedRecords, // Already a number
+        totalSynced: newRecords + updatedRecords, // Simple addition
         errors: errors.length,
         syncTime: new Date()
       }
@@ -133,9 +127,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const deviceId = searchParams.get('deviceId')
 
-    const where: SyncWhereClause = { syncType: 'ATTENDANCE' }
-    if (deviceId) {
-      where.deviceId = deviceId
+    // Build where clause with proper Prisma types
+    const where = {
+      syncType: 'ATTENDANCE' as const,
+      ...(deviceId && { deviceId })
     }
 
     const syncLogs = await prisma.syncLog.findMany({
@@ -149,8 +144,9 @@ export async function GET(request: NextRequest) {
     // Get current sync status
     const currentSync = await prisma.syncLog.findFirst({
       where: {
-        ...where,
-        status: 'IN_PROGRESS'
+        syncType: 'ATTENDANCE' as const,
+        status: 'IN_PROGRESS',
+        ...(deviceId && { deviceId })
       }
     })
 

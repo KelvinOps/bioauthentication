@@ -20,7 +20,6 @@ export default function ExportButtonsExample() {
       <ExportButtons
         onExport={handleExport}
         data={mockData}
-        filename="attendance_report_Jan_2024"
       />
     </div>
   );

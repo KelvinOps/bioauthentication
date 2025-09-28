@@ -1,10 +1,12 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, AttendanceType, AttendanceMethod } from '@prisma/client'
 import { ZKTecoClient, AttendanceRecord } from './ZKTecoClient'
 
 export interface SyncResult {
-  newRecords: AttendanceRecord[]
-  updatedRecords: AttendanceRecord[]
+  newRecords: number
+  updatedRecords: number
   errors: string[]
+  newRecordDetails?: AttendanceRecord[]
+  updatedRecordDetails?: AttendanceRecord[]
 }
 
 // Define proper error type
@@ -21,8 +23,8 @@ export class AttendanceSync {
   ) {}
 
   async syncAttendance(): Promise<SyncResult> {
-    const newRecords: AttendanceRecord[] = []
-    const updatedRecords: AttendanceRecord[] = []
+    const newRecordDetails: AttendanceRecord[] = []
+    const updatedRecordDetails: AttendanceRecord[] = []
     const errors: string[] = []
 
     try {
@@ -32,27 +34,33 @@ export class AttendanceSync {
 
       for (const record of deviceRecords) {
         try {
-          await this.processAttendanceRecord(record, newRecords, updatedRecords)
+          await this.processAttendanceRecord(record, newRecordDetails, updatedRecordDetails)
         } catch (error: unknown) {
           const syncError = error as SyncError
           errors.push(`Error processing record for user ${record.userId}: ${syncError.message}`)
         }
       }
 
-      console.log(`Sync completed: ${newRecords.length} new, ${updatedRecords.length} updated, ${errors.length} errors`)
+      console.log(`Sync completed: ${newRecordDetails.length} new, ${updatedRecordDetails.length} updated, ${errors.length} errors`)
 
     } catch (error: unknown) {
       const syncError = error as SyncError
       errors.push(`Device sync error: ${syncError.message}`)
     }
 
-    return { newRecords, updatedRecords, errors }
+    return { 
+      newRecords: newRecordDetails.length,
+      updatedRecords: updatedRecordDetails.length,
+      errors,
+      newRecordDetails,
+      updatedRecordDetails
+    }
   }
 
   private async processAttendanceRecord(
     record: AttendanceRecord, 
-    newRecords: AttendanceRecord[], 
-    updatedRecords: AttendanceRecord[]
+    newRecordDetails: AttendanceRecord[], 
+    updatedRecordDetails: AttendanceRecord[]
   ): Promise<void> {
     // Find or create employee
     let employee = await this.prisma.employee.findUnique({
@@ -87,13 +95,16 @@ export class AttendanceSync {
       }
     }
 
+    // Map the attendance type before using it
+    const mappedType = this.mapAttendanceType(record.type)
+
     // Check if attendance record already exists
     const existingRecord = await this.prisma.attendance.findFirst({
       where: {
         employeeId: employee.id,
         userId: record.userId,
         timestamp: record.timestamp,
-        type: this.mapAttendanceType(record.type)
+        type: mappedType // Use the mapped type directly
       }
     })
 
@@ -109,7 +120,7 @@ export class AttendanceSync {
             updatedAt: new Date()
           }
         })
-        updatedRecords.push(record)
+        updatedRecordDetails.push(record)
       }
     } else {
       // Create new attendance record
@@ -118,38 +129,38 @@ export class AttendanceSync {
           employeeId: employee.id,
           userId: record.userId,
           timestamp: record.timestamp,
-          type: this.mapAttendanceType(record.type),
+          type: mappedType, // Use the mapped type directly
           method: this.mapAttendanceMethod(record.method),
           deviceId: record.deviceId,
           source: 'ZKTECO',
           synced: true
         }
       })
-      newRecords.push(record)
+      newRecordDetails.push(record)
     }
   }
 
-  private mapAttendanceType(deviceType: number): string {
+  private mapAttendanceType(deviceType: number): AttendanceType {
     // Map device attendance types to our enum
     switch (deviceType) {
-      case 0: return 'CHECK_IN'
-      case 1: return 'CHECK_OUT'
-      case 2: return 'BREAK_IN'
-      case 3: return 'BREAK_OUT'
-      case 4: return 'OVERTIME_IN'
-      case 5: return 'OVERTIME_OUT'
-      default: return 'CHECK_IN'
+      case 0: return AttendanceType.CHECK_IN
+      case 1: return AttendanceType.CHECK_OUT
+      case 2: return AttendanceType.BREAK_IN
+      case 3: return AttendanceType.BREAK_OUT
+      case 4: return AttendanceType.OVERTIME_IN
+      case 5: return AttendanceType.OVERTIME_OUT
+      default: return AttendanceType.CHECK_IN
     }
   }
 
-  private mapAttendanceMethod(deviceMethod: number): string {
+  private mapAttendanceMethod(deviceMethod: number): AttendanceMethod {
     // Map device authentication methods to our enum
     switch (deviceMethod) {
-      case 0: return 'PASSWORD'
-      case 1: return 'FINGERPRINT'
-      case 2: return 'CARD'
-      case 3: return 'FACE'
-      default: return 'FINGERPRINT'
+      case 0: return AttendanceMethod.PASSWORD
+      case 1: return AttendanceMethod.FINGERPRINT
+      case 2: return AttendanceMethod.CARD
+      case 3: return AttendanceMethod.FACE
+      default: return AttendanceMethod.FINGERPRINT
     }
   }
 
